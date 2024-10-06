@@ -1,2 +1,2 @@
 ./venv/Scripts/activate
-python ./src/main.py
+python ./app/main.py

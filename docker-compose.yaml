@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  fastapi:
+    # build: .
+    image: slime
+    command: python /code/app/main.py
+    env_file:
+      - .env
+    ports:
+      - '8001:8001'
+    volumes:
+      - ./app:/code/app # 컨테이너 경로를 절대 경로로 수정
