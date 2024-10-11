@@ -15,4 +15,5 @@ class Category_Closure(SQLModel, table=True):
 class Region(SQLModel, table=True):
     id:int = Field(default=None, primary_key=True)
     region:str = Field(default=None)
-    parentId:int|None = Field(default=None, foreign_key="region.id")
+    area_code:int = Field(default=None)
+    sigungu_code:int|None = Field(default=None)

@@ -122,6 +122,13 @@ async def get_child_region(session:SessionDep, parent_region:str = Query(None)):
         raise HTTPException(status_code=404, detail="root region not found") 
     return regions
 
+# 임시용으로 사용
+# @app.get("/region/getroot")
+# async def get_root(session:SessionDep,areaCode:int=Query(None),settings: config.Settings = Depends(get_settings)):
+#     region = await get_roots(session, settings,areaCode)
+    
+#     return region
+
 
 # main 함수에서 환경 설정 값을 사용
 def main():
