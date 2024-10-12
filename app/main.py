@@ -8,7 +8,7 @@ import logging
 from models import Category, Region 
 from database import get_session
 from get_category import get_category_by_code, get_root_category, get_descendants_category
-from get_spots import get_tourist_spots
+from get_spots import get_tourist_spots, get_tourist_spot_detail, get_nearby_tourist_spot
 from get_region import get_root_regions, get_child_regions
 import config
 from get_comment import get_youtube_comments
@@ -50,7 +50,30 @@ async def get_tourist_spot(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/touristspot/detail")
+async def get_tourist_spot_details(
+    content_id:int=Query(None,description="고유번호"),
+    settings: config.Settings = Depends(get_settings)
+):
+    try:
+        tourist_spot_detail = await get_tourist_spot_detail(content_id,settings)
+        return tourist_spot_detail
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/touristspot/nearby")
+async def get_nearby_tourist_spots(
+    map_x:float = Query(None), 
+    map_y:float = Query(None), 
+    settings: config.Settings = Depends(get_settings)
+):
+    try:
+        tourist_spots = await get_nearby_tourist_spot(map_x,map_y,settings)
+        return tourist_spots
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+        
 @app.get("/comments")
 def fetch_comments(video_id: str = Query(..., description="video_id는 필수입니다."), 
                    settings: config.Settings = Depends(get_settings)):
