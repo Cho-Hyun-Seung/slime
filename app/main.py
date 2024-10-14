@@ -1,5 +1,5 @@
 from functools import lru_cache
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Query
 import uvicorn
 from sqlalchemy.orm import Session
 from typing import List
@@ -10,6 +10,7 @@ from database import get_session
 from get_category import get_category_by_code, get_root_category, get_descendants_category
 from get_spots import get_tourist_spots, get_tourist_spot_detail, get_nearby_tourist_spot
 from get_region import get_root_regions, get_child_regions
+from get_festivals import get_festivals
 import config
 from get_comment import get_youtube_comments
 from typing import Annotated
@@ -29,10 +30,6 @@ SessionDep = Annotated[Session, Depends(get_session)]
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
-from fastapi import FastAPI, Depends, HTTPException, Query
-import config  # 설정 파일 가져오기
-from get_comment import get_youtube_comments  # YouTube 댓글 가져오는 함수
 
 @app.get("/touristspot")
 async def get_tourist_spot(
@@ -151,6 +148,23 @@ async def get_child_region(session:SessionDep, parent_region:str = Query(None)):
 #     region = await get_roots(session, settings,areaCode)
     
 #     return region
+
+@app.get("/festival")
+async def get_festival(
+        page_no:int = Query(1), 
+        do_code:int = Query(None),
+        num_of_rows:int = Query(100),
+        sigungu_code: int = Query(None,description="시군구 코드"),
+        event_start_date = Query(None),
+        event_end_date = Query(None),
+        settings: config.Settings = Depends(get_settings)
+):
+    try:
+        festivals = await get_festivals(
+            page_no, do_code, num_of_rows, sigungu_code, event_start_date, event_end_date,settings)
+        return festivals
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # main 함수에서 환경 설정 값을 사용
