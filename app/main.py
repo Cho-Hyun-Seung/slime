@@ -10,7 +10,7 @@ from database import get_session
 from get_category import get_category_by_code, get_root_category, get_descendants_category
 from get_spots import get_tourist_spots, get_tourist_spot_detail, get_nearby_tourist_spot
 from get_region import get_root_regions, get_child_regions
-from get_festivals import get_festivals
+from get_festivals import get_festival_detail, get_festivals
 import config
 from get_comment import get_youtube_comments
 from typing import Annotated
@@ -34,13 +34,14 @@ def read_root():
 @app.get("/touristspot")
 async def get_tourist_spot(
     page_no: int = Query(1, description="페이지 번호"),
-    do_code: int = Query(33, description="도 코드"), 
+    parent_code: int = Query(33, description="도 코드"), 
     sigungu_code: int = Query(None,description="시군구 코드"),
     num_of_rows: int  = Query(5,description="한 페이지 관광지 개수"),
+    category_code:str = Query(''),
     settings: config.Settings = Depends(get_settings)
 ):
     try:
-        tourist_spots = await get_tourist_spots(page_no=page_no, do_code=do_code, 
+        tourist_spots = await get_tourist_spots(page_no=page_no, parent_code=parent_code, category_code=category_code,
                                                 sigungu_code=sigungu_code, settings=settings, num_of_rows = num_of_rows)
         return tourist_spots
         
@@ -134,12 +135,12 @@ async def get_root_region(session:SessionDep):
     return regions
 
 @app.get("/region/childs", response_model=List[Region])
-async def get_child_region(session:SessionDep, parent_region:str = Query(None)):
-    regions = get_child_regions(session, parent_region)
+async def get_child_region(session:SessionDep, parent_code:int = Query(None)):
+    regions = get_child_regions(session, parent_code)
     
     if not regions:
-        logger.error("루트 지역을 찾을 수 없습니다")
-        raise HTTPException(status_code=404, detail="root region not found") 
+        logger.error("자식 지역을 찾을 수 없습니다")
+        raise HTTPException(status_code=404, detail="child region not found") 
     return regions
 
 # 임시용으로 사용
@@ -147,13 +148,13 @@ async def get_child_region(session:SessionDep, parent_region:str = Query(None)):
 # async def get_root(session:SessionDep,areaCode:int=Query(None),settings: config.Settings = Depends(get_settings)):
 #     region = await get_roots(session, settings,areaCode)
     
-#     return region
+    return region
 
 @app.get("/festival")
 async def get_festival(
         page_no:int = Query(1), 
-        do_code:int = Query(None),
         num_of_rows:int = Query(100),
+        parent_code:int = Query(None),
         sigungu_code: int = Query(None,description="시군구 코드"),
         event_start_date = Query(None),
         event_end_date = Query(None),
@@ -161,11 +162,35 @@ async def get_festival(
 ):
     try:
         festivals = await get_festivals(
-            page_no, do_code, num_of_rows, sigungu_code, event_start_date, event_end_date,settings)
+            page_no, parent_code, num_of_rows, sigungu_code, event_start_date, event_end_date,settings)
         return festivals
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/festival/detail")
+async def get_festival_details(
+    content_id:int=Query(None,description="고유번호"),
+    settings: config.Settings = Depends(get_settings)
+):
+    try:
+        festival_detail = await get_festival_detail(content_id,settings)
+        return festival_detail
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/carousel")
+async def get_carousel(
+    event_start_date = Query(None),
+    num_of_rows:int = Query(3),
+    event_end_date = Query(None)
+):
+    try:
+        festivals = await get_carousel_item(event_start_date,event_end_date,num_of_rows, settings)
+        return festivals
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 # main 함수에서 환경 설정 값을 사용
 def main():

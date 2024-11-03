@@ -17,8 +17,15 @@ def get_youtube_comments(video_id: str, settings: Settings = Depends(Settings)):
         api_obj = build('youtube', 'v3', developerKey=api_key)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initialize YouTube API client: {str(e)}")
-
+    video_title = ''
     comments = []
+
+    try:
+        video_response = api_obj.videos().list(part='snippet', id=video_id).execute()
+        video_title = video_response['items'][0]['snippet']['title']
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"영상 제목 가져오기 오류: {str(e)}")
+
 
     try:
         # 댓글을 YouTube API로부터 가져옴
@@ -29,7 +36,6 @@ def get_youtube_comments(video_id: str, settings: Settings = Depends(Settings)):
         ).execute()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching comments: {str(e)}")
-
     while response:
         for item in response.get('items', []):
             comment = item['snippet']['topLevelComment']['snippet']
@@ -66,6 +72,10 @@ def get_youtube_comments(video_id: str, settings: Settings = Depends(Settings)):
     # 댓글을 DataFrame으로 변환
     if comments:  # 비어있지 않을 때만 파일 저장
         df = pd.DataFrame(comments)
+        
+        # directory = 'commentCSV'
+        # if not os.path.exists(directory):
+        #     os.makedirs(directory)  # 디렉터리가 없으면 생성
         
         # 파일 경로 설정
         file_path = os.path.join('commentCSV', f'{video_id}_comments.xlsx')
