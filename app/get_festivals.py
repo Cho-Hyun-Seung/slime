@@ -67,7 +67,9 @@ async def get_festivals(
                             "content_id": item.get("contentid", None),
                             "cat2": item.get("cat2"),
                             "event_start_date": item.get("eventstartdate"),
-                            "event_end_date":item.get("eventenddate")
+                            "event_end_date":item.get("eventenddate"),
+                            "mapx":item["mapx"],
+                            "mapy":item["mapy"]
                         # 축제 시작일, 종료일 필터링
                         } for item in item_list if item["cat2"] == "A0207" and dt.datetime.strptime(item["eventenddate"],"%Y%m%d") <= dt.datetime.strptime(event_end_date,"%Y%m%d")]
                    return result
