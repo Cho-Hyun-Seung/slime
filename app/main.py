@@ -1,10 +1,13 @@
 from functools import lru_cache
+from time import sleep
 from fastapi import FastAPI, HTTPException, Depends, Query
 import uvicorn
 from sqlalchemy.orm import Session
 from typing import List
 import logging
 
+# from get_pona import get_pona
+from get_planner import get_planner
 from models import Category, Region 
 from database import get_session
 from get_category import get_category_by_code, get_root_category, get_descendants_category
@@ -38,7 +41,7 @@ async def get_tourist_spot(
     sigungu_code: int = Query(None,description="시군구 코드"),
     num_of_rows: int  = Query(5,description="한 페이지 관광지 개수"),
     category_code:str = Query(''),
-    settings: config.Settings = Depends(get_settings)
+    settings: config.Settings = Depends(get_settings),
 ):
     try:
         tourist_spots = await get_tourist_spots(page_no=page_no, parent_code=parent_code, category_code=category_code,
@@ -50,11 +53,12 @@ async def get_tourist_spot(
 
 @app.get("/touristspot/detail")
 async def get_tourist_spot_details(
+    session:SessionDep,
     content_id:int=Query(None,description="고유번호"),
     settings: config.Settings = Depends(get_settings)
 ):
     try:
-        tourist_spot_detail = await get_tourist_spot_detail(content_id,settings)
+        tourist_spot_detail = await get_tourist_spot_detail(session, content_id,settings)
         return tourist_spot_detail
     
     except Exception as e:
@@ -179,18 +183,58 @@ async def get_festival_details(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+# @app.get('/pona')
+# def get_ponas(session:SessionDep):
+#     data = get_pona(session)
+#     return data
 
-@app.get("/carousel")
-async def get_carousel(
-    event_start_date = Query(None),
-    num_of_rows:int = Query(3),
-    event_end_date = Query(None)
+@app.get('/planner')
+async def planner(
+    session: SessionDep,     
+    map_x: float = Query(None), 
+    map_y: float = Query(None), 
+    settings: config.Settings = Depends(get_settings),
 ):
-    try:
-        festivals = await get_carousel_item(event_start_date,event_end_date,num_of_rows, settings)
-        return festivals
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    planner = []
+    distances = 0
+
+    # 초기 데이터를 가져옴
+    data = await get_planner(map_x, map_y, settings=settings, session=session)
+    if data:
+        planner.append(data[0])
+        distances += float(data[0]['dist'])
+        
+    visited_content_ids = [data[0]['content_id']]
+
+    iteration_counter = 0
+    # 새로운 데이터를 추가할 때, 중복 여부 확인
+    while distances <= 30000:
+        # 현재 플래너의 마지막 위치 정보를 사용하여 추가로 데이터 가져오기
+        if len(planner) == 0:
+            break
+        iteration_counter +=1
+        if(iteration_counter >=20):
+            break
+        
+        last_place = planner[-1]
+        new_data = await get_planner(
+            map_x=last_place["mapx"],
+            map_y=last_place["mapy"],
+            settings=settings,
+            session=session
+        )
+        
+        if not new_data:
+            print("더 이상 추가할 데이터가 없습니다.")
+            break
+        print('new!!'+ str(distances))
+        for spot in new_data:
+            if spot["content_id"] not in visited_content_ids:
+                distances += float(spot["dist"])
+                planner.append(spot)
+                visited_content_ids.append(spot["content_id"])
+                break
+    return planner
 
 # main 함수에서 환경 설정 값을 사용
 def main():

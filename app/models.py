@@ -17,3 +17,10 @@ class Region(SQLModel, table=True):
     region:str = Field(default=None)
     parent_code:int = Field(default=None)
     sigungu_code:int|None = Field(default=None)
+    
+class TouristSpot(SQLModel, table=True):
+    __tablename__ = "tourist_spot" 
+    content_id: int = Field(primary_key=True)
+    total_review: int
+    positive: int
+    negative: int
